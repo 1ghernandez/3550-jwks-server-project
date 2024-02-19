@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime, timedelta
 
 
- # A simple in-memory storage for demonstration purposes
+ # in-memory storage
 keysStorage = {}
 
 # Function to generate an RSA key pair
@@ -15,7 +15,6 @@ def generate_rsa_key_pair():
         public_exponent=65537,
         key_size=2048,
         backend=default_backend()
-        #global keysStorage
 
     )
 
@@ -28,14 +27,14 @@ def generate_rsa_key_pair():
     # Generate a unique Key ID (kid)
     kID = str(uuid.uuid4())
 
-    # Serialize private key to PEM format
+    # Create private key to PEM format
     pemPrivate = privateKey.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption()
     )
     
-    # Serialize public key to PEM format
+    # Create public key to PEM format
     pemPublic = publicKey.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
@@ -50,7 +49,7 @@ def generate_rsa_key_pair():
     
     return kID, pemPublic, expires
 
-# Print the keys to see them (in a real application, you should handle keys securely)
+# Print the keys to see them
 kID, publicKey, expiry = generate_rsa_key_pair()
 print(f"Generated key with kid: {kID} and expiry: {expiry}")
 print("Public Key:", publicKey.decode())
