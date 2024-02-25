@@ -21,26 +21,26 @@ def generate_rsa_key_pair():
     # Expires after 1 year
     expires = datetime.now() + timedelta(days = 365)
 
-    # Generate the public key
+    # Generates the public key
     publicKey = privateKey.public_key()
 
-    # Generate a unique Key ID (kid)
+    # Generates a unique Key ID (kid)
     kID = str(uuid.uuid4())
 
-    # Create private key to PEM format
+    # Creates private key to PEM format
     pemPrivate = privateKey.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption()
     )
     
-    # Create public key to PEM format
+    # Creates public key to PEM format
     pemPublic = publicKey.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
 
-    # Store the keys along with kid and expiry in the keys storage
+    # Stores the keys along with kid and expiry in the keys storage
     keysStorage[kID] = {
         "Private Key": pemPrivate,
         "Public Key": pemPublic,
@@ -49,7 +49,7 @@ def generate_rsa_key_pair():
     
     return kID, pemPublic, expires
 
-# Print the keys to see them
+# Prints the keys
 kID, publicKey, expiry = generate_rsa_key_pair()
-print(f"Generated key with kid: {kID} and expiry: {expiry}")
+print(f"Generated key with kid: {kID} \nand expiry: {expiry}\n")
 print("Public Key:", publicKey.decode())
