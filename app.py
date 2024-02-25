@@ -7,6 +7,9 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 
+# Creates an expired key from an existing one to see if it catches expired keys. 
+# some_kid = list(keysStorage.keys())[0]  # Get the kid of the first key as an example
+# keysStorage[some_kid]["Expiry"] = datetime.now() - timedelta(days=1)  # Set its expiry to one day in the past
 
 app = Flask(__name__)
 @app.route("/.well-known/jwks.json", methods=["GET"])
