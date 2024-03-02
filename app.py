@@ -48,7 +48,7 @@ def jwks():
 @app.route("/auth", methods=["POST"])
 def auth():
     use_expired = "expired" in request.args
-    # Find a key to use - here we don't care if the key is expired, we only care about the token's 'exp'
+    # Find a key to use 
     for kid, key_info in keysStorage.items():
         private_key = serialization.load_pem_private_key(
             key_info["Private Key"],
@@ -71,9 +71,11 @@ def auth():
 
     return jsonify({"error": "No suitable key found"}), 400
 
+# for errors 
 @app.errorhandler(405)
 def method_not_allowed(e):
     return jsonify(error="Method Not Allowed"), 405
 
+#runs flask on port 8080
 if __name__ == "__main__":
     app.run(port=8080)
