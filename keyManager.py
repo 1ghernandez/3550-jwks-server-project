@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 keysStorage = {}
 
 # Function to generate an RSA key pair
-def generate_rsa_key_pair():
+def rsa_key():
     # Generate private key
     privateKey = rsa.generate_private_key(
         public_exponent=65537,
@@ -50,6 +50,6 @@ def generate_rsa_key_pair():
     return kID, pemPublic, expires
 
 # Prints the keys
-kID, publicKey, expiry = generate_rsa_key_pair()
+kID, publicKey, expiry = rsa_key()
 print(f"Generated key with kid: {kID} \nand expiry: {expiry}\n")
 print("Public Key:", publicKey.decode())
