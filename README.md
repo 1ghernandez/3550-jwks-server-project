@@ -23,6 +23,6 @@ Implementing a basic JWKS Server
     http://127.0.0.1:8080/.well-known/jwks.json in your web browser to view the JSON Web Key.
 
 ## Testing
-To test I used pytest. 
-In your terminal/console use the command "pytest" to test the test suite. 
-NOTE: Ensure when you use pytest, you are in the directory in which the repository exists.
+- To test I used pytest. 
+- In your terminal/console use the command "pytest" to test the test suite. 
+    - NOTE: Ensure when you use pytest, you are in the directory in which the repository exists.
