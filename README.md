@@ -1,9 +1,9 @@
 # 3550-jwks-server-project
 Implementing a basic JWKS Server
 
-### Name: Gloria Hernández
-### EUID: gih0006
-### Class: CSCE 3550.002
+#### Name: Gloria Hernández
+#### EUID: gih0006
+#### Class: CSCE 3550.002
 
 ## Before Beginning 
 - Install Python 3.11.4 or newer
