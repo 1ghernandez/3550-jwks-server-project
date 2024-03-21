@@ -6,6 +6,7 @@ import base64
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
+import sqlite3
 
 # Creates an expired key from an existing one to see if it catches expired keys. 
 #some_kid = list(keysStorage.keys())[0]  # Get the kid of the first key as an example
@@ -16,6 +17,17 @@ from cryptography.hazmat.backends import default_backend
 app = Flask(__name__)
 # for the server
 @app.route("/.well-known/jwks.json", methods=["GET"])
+
+# function to connect to the SQL database
+def Initialize_DB():
+    database_connection = sqlite3.connect('totally_not_my_privateKeys.db')
+    cursor = database_connection.cursor() # to write commands and read data
+    cursor.execute('''CREATE TABLE IF NOT EXISTS keys
+                 (kid INTEGER PRIMARY KEY AUTOINCREMENT, key BLOB NOT NULL, exp INTEGER NOT NULL)''')
+    database_connection.commit()
+    database_connection.close()
+
+
 #function for jwks server, returns non expired keys 
 def jwks():
     non_expired_keys = []
@@ -78,4 +90,5 @@ def method_not_allowed(e):
 
 #runs flask on port 8080
 if __name__ == "__main__":
+    Initialize_DB() # initialize the database 
     app.run(port=8080)
