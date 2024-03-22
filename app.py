@@ -15,20 +15,29 @@ import sqlite3
 
 #initialize flask
 app = Flask(__name__)
-# for the server
-@app.route("/.well-known/jwks.json", methods=["GET"])
 
 # function to connect to the SQL database
 def Initialize_DB():
     database_connection = sqlite3.connect('totally_not_my_privateKeys.db')
     cursor = database_connection.cursor() # to write commands and read data
-    cursor.execute('''CREATE TABLE IF NOT EXISTS keys
-                 (kid INTEGER PRIMARY KEY AUTOINCREMENT, key BLOB NOT NULL, exp INTEGER NOT NULL)''')
-    database_connection.commit()
-    database_connection.close()
+    # creates the database if it does not already exist
+    cursor.execute('''CREATE TABLE IF NOT EXISTS keys 
+                   (kid INTEGER PRIMARY KEY AUTOINCREMENT, 
+                   key BLOB NOT NULL, 
+                   exp INTEGER NOT NULL
+                   )''')
+    kID, pemPublic, expiry = rsa_key() # generates a new RSA key pair
+    pemPrivate = keysStorage[kID]["Private Key"] # gets the key from keysStorage
+    pemPrivate_bytes = pemPrivate
+    expiry_timestamp = int(expiry.timestamp())
+    cursor.execute("INSERT INTO keys (kid, key, exp) VALUES (?, ?, ?)", (kID, pemPrivate_bytes, expiry_timestamp))
 
+    database_connection.commit() # saves database
+    database_connection.close() # Closes database
 
-#function for jwks server, returns non expired keys 
+# for the server
+@app.route("/.well-known/jwks.json", methods=["GET"])
+# function for jwks server, returns non expired keys 
 def jwks():
     non_expired_keys = []
     # Checks if keys are expired or not
