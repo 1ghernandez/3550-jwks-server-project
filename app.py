@@ -28,9 +28,9 @@ def Initialize_DB():
                    )''')
     kID, pemPublic, expiry = rsa_key() # generates a new RSA key pair
     pemPrivate = keysStorage[kID]["Private Key"] # gets the key from keysStorage
-    pemPrivate_bytes = pemPrivate
+    # pemPrivate_bytes = pemPrivate
     expiry_timestamp = int(expiry.timestamp())
-    cursor.execute("INSERT INTO keys (kid, key, exp) VALUES (?, ?, ?)", (kID, pemPrivate_bytes, expiry_timestamp))
+    cursor.execute("INSERT INTO keys (key, exp) VALUES (?, ?)", (pemPrivate, expiry_timestamp))
 
     database_connection.commit() # saves database
     database_connection.close() # Closes database
