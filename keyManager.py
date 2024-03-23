@@ -15,7 +15,6 @@ def rsa_key():
     )
     expires = datetime.now() + timedelta(days=365) # keys expire after a year
     publicKey = privateKey.public_key() # public key that unlocks private key
-    kID = str(uuid.uuid4()) # creates a unique ID
 
     # preforms the serializations to match PEM format
     pemPublic = publicKey.public_bytes( 
@@ -23,7 +22,7 @@ def rsa_key():
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
     
-    return kID, privateKey, pemPublic, expires
+    return privateKey, pemPublic, expires
 
 # function to read a private key from the file
 def load_private_key_from_pem(pem_file_path):
@@ -61,7 +60,7 @@ def initialize_database():
         
          # creating a table schema
         cursor.execute('''CREATE TABLE IF NOT EXISTS keys 
-                       (kid TEXT PRIMARY KEY, 
+                       (kid INTEGER PRIMARY KEY AUTOINCREMENT, 
                        key BLOB NOT NULL, 
                        exp INTEGER NOT NULL
                        )''')
@@ -69,7 +68,7 @@ def initialize_database():
         pass
 
 # function to store the private key to the database
-def storeInDB(private_key, expiry, kID): 
+def storeInDB(private_key, expiry): 
     with sqlite3.connect('totally_not_my_privateKeys.db') as database_connection:
         cursor = database_connection.cursor() # creates a cursor to read and write to the database
 
@@ -83,5 +82,7 @@ def storeInDB(private_key, expiry, kID):
         expiry_int = int(expiry.timestamp())
 
         # Executes the SQL INSERT statement
-        cursor.execute("INSERT INTO keys (kid, key, exp) VALUES (?, ?, ?)", (kID, pem_private_key, expiry_int))
+        cursor.execute("INSERT INTO keys (key, exp) VALUES (?, ?)", (pem_private_key, expiry_int))
         database_connection.commit() # saves the database
+
+        return cursor.lastrowid # store ID of the last row or kID

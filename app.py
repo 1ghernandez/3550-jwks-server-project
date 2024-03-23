@@ -20,12 +20,12 @@ app = Flask(__name__)
 initialize_database()
 
 # create a pair of keys 
-kID, privateKey, pemPublic, expires = rsa_key()
+privateKey, pemPublic, expires = rsa_key()
 # stores the keys private key in the database
-storeInDB(privateKey, expires, kID)
+kID = storeInDB(privateKey, expires)
 
 # retrives teh public key from the private key
-def get_public_key_for_jwks(private_key_pem):
+def getPublicKeyJWKS(private_key_pem):
     # Load the private key from PEM format
     private_key = serialization.load_pem_private_key(
         private_key_pem,
@@ -74,7 +74,7 @@ def jwks():
                     {
                         "kty": "RSA",
                         "use": "sig",
-                        "kid": kid,
+                        "kid": str(kid),
                         "n": base64.urlsafe_b64encode(public_numbers.n.to_bytes((public_numbers.n.bit_length() + 7) // 8, byteorder='big')).decode('utf-8').rstrip("="),
                         "e": base64.urlsafe_b64encode(public_numbers.e.to_bytes((public_numbers.e.bit_length() + 7) // 8, byteorder='big')).decode('utf-8').rstrip("="),
                     }
