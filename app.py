@@ -1,80 +1,122 @@
 from flask import Flask, request, jsonify
 from datetime import datetime, timedelta #for the date and time 
-from keyManager import rsa_key, keysStorage  # Import the function and storage from keyManager script
+from keyManager import initialize_database, rsa_key, storeInDB
 import jwt
 import base64
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 import sqlite3
+import logging
 
-# Creates an expired key from an existing one to see if it catches expired keys. 
-#some_kid = list(keysStorage.keys())[0]  # Get the kid of the first key as an example
-#keysStorage[some_kid]["Expiry"] = datetime.now() - timedelta(days=1)  # Set its expiry to one day in the past
 # website for server: http://127.0.0.1:8080/.well-known/jwks.json
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s') # for debugging
 
 #initialize flask
 app = Flask(__name__)
 
-# function to connect to the SQL database
-def Initialize_DB():
-    database_connection = sqlite3.connect('totally_not_my_privateKeys.db')
-    cursor = database_connection.cursor() # to write commands and read data
-    # creates the database if it does not already exist
-    cursor.execute('''CREATE TABLE IF NOT EXISTS keys 
-                   (kid INTEGER PRIMARY KEY AUTOINCREMENT, 
-                   key BLOB NOT NULL, 
-                   exp INTEGER NOT NULL
-                   )''')
-    kID, pemPublic, expiry = rsa_key() # generates a new RSA key pair
-    pemPrivate = keysStorage[kID]["Private Key"] # gets the key from keysStorage
-    # pemPrivate_bytes = pemPrivate
-    expiry_timestamp = int(expiry.timestamp())
-    cursor.execute("INSERT INTO keys (key, exp) VALUES (?, ?)", (pemPrivate, expiry_timestamp))
+# initialize the database
+initialize_database()
 
-    database_connection.commit() # saves database
-    database_connection.close() # Closes database
+# create a pair of keys 
+kID, privateKey, pemPublic, expires = rsa_key()
+# stores the keys private key in the database
+storeInDB(privateKey, expires, kID)
+
+# retrives teh public key from the private key
+def get_public_key_for_jwks(private_key_pem):
+    # Load the private key from PEM format
+    private_key = serialization.load_pem_private_key(
+        private_key_pem,
+        password=None, 
+        backend=default_backend()
+    )
+
+    # Get the public key
+    public_key = private_key.public_key()
+
+    # Serialize the public key to PEM format
+    pem_public_key = public_key.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo
+    )
+    
+    return pem_public_key # returns the public key
 
 # for the server
-@app.route("/.well-known/jwks.json", methods=["GET"])
-# function for jwks server, returns non expired keys 
+@app.route('/.well-known/jwks.json', methods=['GET'])
 def jwks():
-    non_expired_keys = []
-    # Checks if keys are expired or not
-    for kid, key_info in keysStorage.items():
-        if key_info["Expiry"] > datetime.now():
-            # Deserializes public key from PEM format
-            public_key = serialization.load_pem_public_key(
-                key_info["Public Key"],
+    try:
+        # creates a connection to the database
+        database_connection = sqlite3.connect('totally_not_my_privateKeys.db')
+        cursor = database_connection.cursor() # creates a cursor to read and write 
+        
+        cursor.execute("SELECT kid, key FROM keys LIMIT 1") # sends a SQL query to the database and ensures only one row is retrieved
+        row = cursor.fetchone() # retrieves the next row of a query result set
+        database_connection.close() # close database connection
+
+        if row:
+            kid, pem_private_key = row
+
+            # private key goes for PEM format to object 
+            private_key = serialization.load_pem_private_key(
+                pem_private_key,
+                password=None,
                 backend=default_backend()
             )
-            # Ensures the public key is RSA type, then extracts modulus and exponent for JWK format
-            if isinstance(public_key, rsa.RSAPublicKey):
-                public_numbers = public_key.public_numbers()
-                modulus = public_numbers.n
-                exponent = public_numbers.e
-                
-                jwk = {
-                    "kty": "RSA",
-                    "use": "sig",
-                    "kid": kid,
-                    "alg": "RS256",
-                    "n": base64.urlsafe_b64encode(modulus.to_bytes((modulus.bit_length() + 7) // 8, byteorder='big')).rstrip(b'=').decode('utf-8'),
-                    "e": base64.urlsafe_b64encode(exponent.to_bytes((exponent.bit_length() + 7) // 8, byteorder='big')).rstrip(b'=').decode('utf-8'),
-                }
-                non_expired_keys.append(jwk)
-    
-    return jsonify({"keys": non_expired_keys})
+            public_key = private_key.public_key()
+            public_numbers = public_key.public_numbers()
+
+            # extracts modulus and exponent for JWK format
+            jwks = {
+                "keys": [
+                    {
+                        "kty": "RSA",
+                        "use": "sig",
+                        "kid": kid,
+                        "n": base64.urlsafe_b64encode(public_numbers.n.to_bytes((public_numbers.n.bit_length() + 7) // 8, byteorder='big')).decode('utf-8').rstrip("="),
+                        "e": base64.urlsafe_b64encode(public_numbers.e.to_bytes((public_numbers.e.bit_length() + 7) // 8, byteorder='big')).decode('utf-8').rstrip("="),
+                    }
+                ]
+            }
+            
+            return jsonify(jwks)
+        else:
+            return jsonify({"error": "Key not found"}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/auth", methods=["POST"])
 def auth():
     use_expired = "expired" in request.args
-    # Find a key to use 
-    for kid, key_info in keysStorage.items():
+
+    # first gets the key from the database
+    database_connection = sqlite3.connect('totally_not_my_privateKeys.db')
+    cursor = database_connection.cursor()
+
+    if use_expired:
+         # Set token to expire in the past
+        cursor.execute("SELECT kid, key FROM keys WHERE exp < ?", (datetime.now().timestamp(),))
+    else:
+        # Set token to expire in the future
+        cursor.execute("SELECT kid, key FROM keys WHERE exp > ?", (datetime.now().timestamp(),))
+
+    print("Fetching a key from the database...") # for debugging
+    key_record = cursor.fetchone() # saves the key in key_record
+
+    database_connection.close()
+
+    # if key_record exists
+    if key_record: 
+        # put in PEM format
+        kid, pem_private_key = key_record
         private_key = serialization.load_pem_private_key(
-            key_info["Private Key"],
+            pem_private_key,
             password=None,
+            backend=default_backend()
         )
+
         if use_expired:
             # Set token to expire in the past
             payload = {
@@ -87,7 +129,9 @@ def auth():
                 "iss": "YourIssuer",
                 "exp": datetime.utcnow() + timedelta(minutes=5),
             }
-        token = jwt.encode(payload, private_key, algorithm="RS256", headers={"kid": kid})
+
+        token = jwt.encode(payload, private_key, algorithm="RS256", headers={"kid": str(kid)})
+        #print(f"Generated JWT: {token}") # for debugging 
         return jsonify({"token": token})
 
     return jsonify({"error": "No suitable key found"}), 400
@@ -99,5 +143,4 @@ def method_not_allowed(e):
 
 #runs flask on port 8080
 if __name__ == "__main__":
-    Initialize_DB() # initialize the database 
-    app.run(port=8080)
+    app.run(debug=True, port=8080)
