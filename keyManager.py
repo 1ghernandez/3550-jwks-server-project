@@ -26,9 +26,9 @@ def rsa_key():
 
 # function to read a private key from the file
 def load_private_key_from_pem(pem_file_path):
-    """
-    Loads a private key from a PEM file.
-    """
+
+    # Loads a private key from a PEM file.
+
     with open(pem_file_path, 'rb') as key_file:
         private_key = serialization.load_pem_private_key(
             key_file.read(),
@@ -39,9 +39,9 @@ def load_private_key_from_pem(pem_file_path):
 
 # function to read a public key from the file
 def load_public_key_from_pem(pem_file_path):
-    """
-    Loads a public key from a PEM file.
-    """
+
+    # Loads a public key from a PEM file.
+
     with open(pem_file_path, 'rb') as key_file:
         public_key = serialization.load_pem_public_key(
             key_file.read(),
@@ -54,7 +54,7 @@ def initialize_database():
     print("Initializing database...")
     # with ensures that the database gets closed 
     with sqlite3.connect('totally_not_my_privateKeys.db') as database_connection:
-        print(f"Initializing/Accessing Database at {os.path.abspath('totally_not_my_privateKeys.db')}")
+        #print(f"Initializing/Accessing Database at {os.path.abspath('totally_not_my_privateKeys.db')}") # for debugging
 
         cursor = database_connection.cursor() # creates a cursor to read and write to the database
         
@@ -68,7 +68,7 @@ def initialize_database():
         pass
 
 # function to store the private key to the database
-def storeInDB(private_key, expiry): 
+def store_in_DB(private_key, expiry): 
     with sqlite3.connect('totally_not_my_privateKeys.db') as database_connection:
         cursor = database_connection.cursor() # creates a cursor to read and write to the database
 

@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from datetime import datetime, timedelta #for the date and time 
-from keyManager import initialize_database, rsa_key, storeInDB
+from keyManager import initialize_database, rsa_key, store_in_DB
 import jwt
 import base64
 from cryptography.hazmat.primitives import serialization
@@ -11,7 +11,8 @@ import logging
 
 # website for server: http://127.0.0.1:8080/.well-known/jwks.json
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s') # for debugging
+# for debuging 
+# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(name)s %(threadName)s : %(message)s') # for debugging
 
 #initialize flask
 app = Flask(__name__)
@@ -22,29 +23,10 @@ initialize_database()
 # create a pair of keys 
 privateKey, pemPublic, expires = rsa_key()
 # stores the keys private key in the database
-kID = storeInDB(privateKey, expires)
-
-# retrives teh public key from the private key
-def getPublicKeyJWKS(private_key_pem):
-    # Load the private key from PEM format
-    private_key = serialization.load_pem_private_key(
-        private_key_pem,
-        password=None, 
-        backend=default_backend()
-    )
-
-    # Get the public key
-    public_key = private_key.public_key()
-
-    # Serialize the public key to PEM format
-    pem_public_key = public_key.public_bytes(
-        encoding=serialization.Encoding.PEM,
-        format=serialization.PublicFormat.SubjectPublicKeyInfo
-    )
-    
-    return pem_public_key # returns the public key
+kID = store_in_DB(privateKey, expires)
 
 # for the server
+# try and exception was used for debugging but I left it there. 
 @app.route('/.well-known/jwks.json', methods=['GET'])
 def jwks():
     try:
@@ -143,4 +125,4 @@ def method_not_allowed(e):
 
 #runs flask on port 8080
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(port=8080)
