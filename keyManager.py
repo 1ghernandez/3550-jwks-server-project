@@ -24,31 +24,6 @@ def rsa_key():
     
     return privateKey, pemPublic, expires
 
-# function to read a private key from the file
-def load_private_key_from_pem(pem_file_path):
-
-    # Loads a private key from a PEM file.
-
-    with open(pem_file_path, 'rb') as key_file:
-        private_key = serialization.load_pem_private_key(
-            key_file.read(),
-            password=None, 
-            backend=default_backend()
-        )
-    return private_key
-
-# function to read a public key from the file
-def load_public_key_from_pem(pem_file_path):
-
-    # Loads a public key from a PEM file.
-
-    with open(pem_file_path, 'rb') as key_file:
-        public_key = serialization.load_pem_public_key(
-            key_file.read(),
-            backend=default_backend()
-        )
-    return public_key
-
 # function to initialize a database
 def initialize_database():
     print("Initializing database...")
